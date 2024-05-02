@@ -1,11 +1,12 @@
 --Use common.LogInfo("common", "-"..name.."-") --Log to mods.txt
 --Use tostring() to concatenate non-string values in chat()
 --itemLib.GetName(itemId) gets the name of the itemId. Wrap userMods.FromWString() around it for proper output.
-
+local lootCounter = {}
 function Main()
 	
 	--common.RegisterEventHandler(OnChat, "EVENT_UNKNOWN_SLASH_COMMAND")
 	--common.RegisterEventHandler(EVENT_LOOT_DISTRIBUTION_STARTED, "EVENT_LOOT_DISTRIBUTION_STARTED")
+
 	common.RegisterEventHandler(EVENT_LOOT_TO_DISTRIBUTE, "EVENT_LOOT_TO_DISTRIBUTE")
 
 	--common.RegisterEventHandler(EVENT_RAID_LOOT_MASTER_CHANGED , "EVENT_RAID_LOOT_MASTER_CHANGED")
@@ -28,15 +29,9 @@ function Main()
 	--local scheme = LOOT_SCHEME_TYPE_MASTER
 	
 	
-	
-	
 end
 function EVENT_LOOT_DISTRIBUTION_STARTED(params)
 	chat(2, params.itemObject)
-end
-
-function LootTable()
-	
 end
 
 function EVENT_LOOT_TO_DISTRIBUTE(params)
@@ -46,21 +41,56 @@ function EVENT_LOOT_TO_DISTRIBUTE(params)
 	local looters = params.looters
 	chat(2, "rollId:",rollId)
 	chat(2, "itemId:",itemId )
-	chat(2, "itemName:",itemIdName)
+	chat(2, "itemIdName:",itemIdName)
+	common.LogInfo("common", "-"..itemIdName.."-") --Log to mods.txt
 	--locales["itemName"]
-	chat(2, looters)
-	loot.SelectWinnerForLoot( rollId, looters[0] )
-	LootTracker()
+	chat(2, "looters:",looters)
 
+	if itemIdName == locales["KOErelic"] then
+		chat(2, "the itemname is KOE relic, going into LowestLoot()")
+		loot.SelectWinnerForLoot( rollId, looters[LowestLoot()] )
+		chat(2, LowestLoot())
+		LootCounterAdd()
+	else
+		chat(2, "false")
+	end
 	chat(1, "I gave",rollId,"to",looters[0])
+end
 
-	local members = group.GetMembers()
-	chat(1, members[0].name)
+function LowestLoot()
+	LootTracker()
+	chat(2, "entering lowestLoot() function)")
+	local lowestNumber = math.huge
+	local playerWithLowestNumber = nil
+	local playerWithLowestNumberIndex = nil
+
+	for i = 0, #lootCounter do
+		local player = lootCounter[i]
+		if player.number < lowestNumber then
+			lowestNumber = player.number
+			playerWithLowestNumber = player.playername
+			playerWithLowestNumberIndex = i
+		end
+	end
+	chat(2, "player with lowest number is:",playerWithLowestNumber,"having",lowestNumber)
+	return playerWithLowestNumberIndex
 end
 
 function LootTracker()
-Counter{members[0], members[1], members[2], members[3]}
-chatlog(1, Counter)
+	local members = group.GetMembers()
+	
+	for i = 0, #members do
+		lootCounter[i] = {playername = userMods.FromWString(members[i].name), number = 0}
+	end
+
+	--lootCounter[0][2] = 2 lootcounter is 2nd table, value is loot amount IMPORTANT 2nd table indexes from 1, 1st table indexes from 0
+	--lootCounter[0]["number"] = 2
+
+	chat(2, "init party loot info:",lootCounter)
+end
+
+function LootCounterAdd()
+	lootCounter[LowestLoot()]["number"] = lootCounter[LowestLoot()]["number"] + 1
 end
 
 function OnChat(params)
